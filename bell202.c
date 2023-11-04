@@ -9,6 +9,17 @@
 #define FREQ_0 2200
 #define FREQ_1 1200
 
+void play_bit(bool bit, int16_t *samples, size_t *sample_i) {
+  double freq = bit ? FREQ_1 : FREQ_0;
+  double time = (double)*sample_i / SAMPLE_RATE;
+  size_t end_sample_i = *sample_i + (SAMPLE_RATE / 1200);
+  while (*sample_i < end_sample_i) {
+    time = (double)*sample_i / SAMPLE_RATE;
+    samples[*sample_i] = 32767 * cos(2 * M_PI * freq * time);
+    *sample_i += 1;
+  }
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "usage: %s input.bin\n", argv[0]);
@@ -24,8 +35,8 @@ int main(int argc, char **argv) {
   size_t input_size = ftell(input);
   fseek(input, 0, SEEK_SET);
 
-  // * (10 / 8) because 1 start bit, 8 data bits, 1 stop bit
-  size_t output_size = ceilf((float)input_size * 10 / 8);
+  // * (10 / 8) because 1 start bit, 8 data bits, 1 stop bit, then 2 sync bytes
+  size_t output_size = ceilf((float)input_size * 10 / 8) + 2;
   uint8_t *input_data = malloc(output_size);
   if (!input_data) {
     perror("malloc()");
@@ -48,39 +59,25 @@ int main(int argc, char **argv) {
 
   int16_t *samples = malloc(sizeof(int16_t) * num_samples);
   size_t sample_i = 0;
+  // synchronization bits
+  for (int i = 0; i < 16; i++) {
+    play_bit(1, samples, &sample_i);
+  }
+  // convert input
   for (size_t i = 0; i < input_size; i++) {
     // start bit
-    double time = (double)sample_i / SAMPLE_RATE;
-    size_t end_sample_i = sample_i + (SAMPLE_RATE / 1200);
-    while (sample_i < end_sample_i) {
-      time = (double)sample_i / SAMPLE_RATE;
-      samples[sample_i] = 32767 * cos(2 * M_PI * FREQ_0 * time);
-      sample_i++;
-    }
+    play_bit(0, samples, &sample_i);
 
     // iterate over every bit in the byte
     uint8_t byte = input_data[i];
     for (int j = 0; j < 8; j++) {
       // make some samples for this bit
-      double freq = byte & 0x1 ? FREQ_1 : FREQ_0;
-      /* double freq = byte & 0x1 ? FREQ_1 : FREQ_0; */
-      end_sample_i = sample_i + (SAMPLE_RATE / 1200);
-      while (sample_i < end_sample_i) {
-        time = (double)sample_i / SAMPLE_RATE;
-        samples[sample_i] = 32767 * cos(2 * M_PI * freq * time);
-        sample_i++;
-      }
-      /* byte <<= 1; */
+      play_bit(byte & 0x1, samples, &sample_i);
       byte >>= 1;
     }
 
     // stop bit
-    end_sample_i = sample_i + (SAMPLE_RATE / 1200);
-    while (sample_i < end_sample_i) {
-      time = (double)sample_i / SAMPLE_RATE;
-      samples[sample_i] = 32767 * cos(2 * M_PI * FREQ_1 * time);
-      sample_i++;
-    }
+    play_bit(1, samples, &sample_i);
   }
   fprintf(stderr, "end sample_i: %ld\n", sample_i);
 
