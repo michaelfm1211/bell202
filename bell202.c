@@ -49,7 +49,9 @@ int main(int argc, char **argv) {
   }
 
   size_t num_samples = output_size * 8 * (SAMPLE_RATE / 1200);
-  fprintf(stderr, "num_samples: %ld\n", num_samples);
+#ifdef DEBUG
+  fprintf(stderr, "allocating room for %ld samples\n", num_samples);
+#endif
   if (!write_riff_wav_hdr(1, 1200 * (SAMPLE_RATE / 1200), num_samples)) {
     perror("write_riff_wav_hdr()");
     free(input_data);
@@ -79,7 +81,9 @@ int main(int argc, char **argv) {
     // stop bit
     play_bit(1, samples, &sample_i);
   }
-  fprintf(stderr, "end sample_i: %ld\n", sample_i);
+#ifdef DEBUG
+  fprintf(stderr, "number of samples used: %ld\n", sample_i);
+#endif
 
   if (!fwrite(samples, sizeof(uint8_t), num_samples, stdout)) {
     perror("fwrite()");
