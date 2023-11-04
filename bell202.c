@@ -4,18 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SAMPLE_RATE 48000
+#define SAMPLE_RATE 8000
 
 #define FREQ_0 2200
 #define FREQ_1 1200
 
-void play_bit(bool bit, int16_t *samples, size_t *sample_i) {
+void play_bit(bool bit, uint8_t *samples, size_t *sample_i) {
   double freq = bit ? FREQ_1 : FREQ_0;
   double time = (double)*sample_i / SAMPLE_RATE;
   size_t end_sample_i = *sample_i + (SAMPLE_RATE / 1200);
   while (*sample_i < end_sample_i) {
     time = (double)*sample_i / SAMPLE_RATE;
-    samples[*sample_i] = 32767 * cos(2 * M_PI * freq * time);
+    samples[*sample_i] = 127 * cos(2 * M_PI * freq * time) + 127;
     *sample_i += 1;
   }
 }
@@ -50,14 +50,14 @@ int main(int argc, char **argv) {
 
   size_t num_samples = output_size * 8 * (SAMPLE_RATE / 1200);
   fprintf(stderr, "num_samples: %ld\n", num_samples);
-  if (!write_riff_wav_hdr(2, 1200 * (SAMPLE_RATE / 1200), num_samples)) {
+  if (!write_riff_wav_hdr(1, 1200 * (SAMPLE_RATE / 1200), num_samples)) {
     perror("write_riff_wav_hdr()");
     free(input_data);
     fclose(input);
     return 1;
   }
 
-  int16_t *samples = malloc(sizeof(int16_t) * num_samples);
+  uint8_t *samples = malloc(sizeof(uint8_t) * num_samples);
   size_t sample_i = 0;
   // synchronization bits
   for (int i = 0; i < 16; i++) {
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
   }
   fprintf(stderr, "end sample_i: %ld\n", sample_i);
 
-  if (!fwrite(samples, sizeof(int16_t), num_samples, stdout)) {
+  if (!fwrite(samples, sizeof(uint8_t), num_samples, stdout)) {
     perror("fwrite()");
     free(samples);
     free(input_data);
