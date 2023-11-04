@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef M_PI
+// from /usr/include/math.h because compliant C99 doesn't define M_PI
+#define M_PI 3.14159265358979323846 /* pi */
+#endif
+
 #define SAMPLE_RATE 8000
 
 #define FREQ_0 2200

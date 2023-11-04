@@ -1,4 +1,5 @@
-CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99 -Wno-unused-command-line-argument
+LDFLAGS = -lm
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o)
@@ -10,10 +11,10 @@ debug: CFLAGS += -O0 -g -fsanitize=address -fsanitize=undefined -DDEBUG
 debug: bell202
 
 bell202: $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $^ -o $@
+	$(CC) $^ $(CFLAGS) $(LDFLAGS) -c -o $@
 
 .PHONY: clean
 clean:
